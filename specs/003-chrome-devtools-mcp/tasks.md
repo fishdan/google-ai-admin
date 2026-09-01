@@ -18,7 +18,7 @@
 ## Validation
 
 - [x] T008 Start Chrome and the MCP server in a supported local environment.
-- [ ] T009 Verify tool discovery from the intended AI client.
-- [ ] T010 Run the non-destructive title/URL smoke test.
-- [ ] T011 Verify no credentials or user-specific values are present in tracked files.
-- [ ] T012 Verify the existing Workspace CLI and `.secrets` files remain unchanged.
+- [x] T009 Verify tool discovery from the intended AI client.
+- [x] T010 Run the non-destructive title/URL smoke test.
+- [x] T011 Verify no credentials or user-specific values are present in tracked files.
+- [x] T012 Verify the existing Workspace CLI and `.secrets` files remain unchanged.
