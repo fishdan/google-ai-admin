@@ -6,3 +6,11 @@
 - Added Git ignore rules for OAuth tokens, client configuration, and service-account keys.
 - Added setup guidance recommending OAuth desktop credentials for the initial interactive CLI workflow and deferring service-account keys until explicitly needed.
 - Validation: confirmed the repository is clean before this change; secret files are ignored by Git.
+
+## 2026-09-01 — Directory read-only CLI
+
+- Added a Python CLI for paginated read-only listing of Workspace users and groups.
+- Uses the installed-app OAuth client in `.secrets` and stores the generated token at `.secrets/token.json` with restrictive permissions.
+- Uses only `admin.directory.user.readonly` and `admin.directory.group.readonly` scopes.
+- Validation: dependencies installed in local `.venv`; syntax/help checks pass; OAuth authorization completed and `.secrets/token.json` was created with mode `600`.
+- First API call is blocked until the Admin SDK API is enabled in the Google Cloud project.

@@ -1,4 +1,6 @@
 # Local credentials and secret material
+.venv/
+__pycache__/
 .secrets/*
 !.secrets/README.md
 !.secrets/.gitignore
