@@ -1,1 +1,8 @@
 # Progress Log
+
+## 2026-09-01 — Local credential scaffold
+
+- Added a local-only `.secrets` directory for Google Workspace authentication material.
+- Added Git ignore rules for OAuth tokens, client configuration, and service-account keys.
+- Added setup guidance recommending OAuth desktop credentials for the initial interactive CLI workflow and deferring service-account keys until explicitly needed.
+- Validation: confirmed the repository is clean before this change; secret files are ignored by Git.

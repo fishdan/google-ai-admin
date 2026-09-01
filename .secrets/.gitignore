@@ -1,0 +1,4 @@
+# Keep this directory local. Only the documentation and this ignore rule are tracked.
+*
+!.gitignore
+!README.md
