@@ -18,3 +18,4 @@
 - Requested Gmail settings authorization to inspect the administrator's filter and forwarding configuration without reading messages; added the `gmail.settings.basic` scope and an `inspect-gmail-routing` command.
 - Validation complete: Gmail API enabled, OAuth reauthorized, and Gmail settings inspection returned three Google Voice-related forwarding filters targeting `texting@reelreport.com`; that forwarding address is verified.
 - Formalized the complete initial milestone in `specs/002-workspace-admin-foundation/` on branch `002-workspace-admin-foundation` for review via pull request.
+- Created branch `003-chrome-devtools-mcp` and drafted `specs/003-chrome-devtools-mcp/` for a local, safe, reproducible Chrome DevTools MCP integration. Discovery of current package and client configuration is intentionally the first task.
