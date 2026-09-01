@@ -1,6 +1,6 @@
 # Google AI Admin
 
-Command-line tools for helping a Google Workspace administrator inspect and manage a Workspace using Google's APIs.
+Command-line tools for helping a Google Workspace administrator use an AI agent to inspect and manage a Workspace using Google's APIs.
 
 This repository currently provides read-only tools for:
 
