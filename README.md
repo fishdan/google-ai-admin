@@ -147,6 +147,14 @@ Run a syntax check and view command help with:
 
 The project specification for this integration is in `specs/003-chrome-devtools-mcp/`. The official Chrome DevTools MCP server requires Node.js LTS, npm, and current Chrome. The package can be run through `npx`, so no repository dependency is needed.
 
+### Recommended: ask your AI assistant
+
+The exact configuration location differs by operating system and AI client. From the repository root, tell your AI assistant:
+
+> Set up the official Chrome DevTools MCP server for this project. Detect my operating system and AI client, use the current official Chrome DevTools MCP documentation, prefer an isolated browser profile for the first smoke test, configure the MCP server without hard-coded user paths or secrets, restart or reload the client if needed, and verify the connection by opening `https://example.com` and reporting only its title and URL. Explain each OS- and client-specific step, and warn me before connecting to an existing authenticated browser profile.
+
+The assistant should verify Node.js, npm, Chrome, the MCP package, the client configuration, and the smoke test. It should not ask you to paste credentials, cookies, authorization codes, or browser callback URLs into chat.
+
 The recommended initial configuration uses an isolated Chrome profile. This allows the server to launch a clean browser for smoke tests without exposing an existing signed-in browser profile:
 
 ```toml
@@ -155,13 +163,13 @@ command = "npx"
 args = ["-y", "chrome-devtools-mcp@latest", "--isolated", "--no-usage-statistics"]
 ```
 
-For Codex, add the equivalent entry with:
+For clients that use a TOML configuration, use the equivalent entry above. For clients that use JSON, use the corresponding `mcpServers` structure. The official server command is:
 
 ```bash
-codex mcp add chrome-devtools -- npx chrome-devtools-mcp@latest --isolated --no-usage-statistics
+npx -y chrome-devtools-mcp@latest --isolated --no-usage-statistics
 ```
 
-Restart the AI client after changing its MCP configuration. The server starts the isolated browser when a browser tool is first used. A safe smoke test is to ask the AI to open `https://example.com` and report only the page title and URL.
+Use the AI client's documented MCP configuration method to register that command, then restart or reload the AI client. The server starts the isolated browser when a browser tool is first used. A safe smoke test is to ask the AI to open `https://example.com` and report only the page title and URL.
 
 To connect to an existing Chrome session instead, Chrome must expose a local DevTools endpoint and the MCP configuration must use `--browser-url=http://127.0.0.1:<PORT>`. Keep that endpoint local and protected. If Chrome and the AI client run in different environments such as Windows and WSL, a host gateway address may be required; use the narrowest reachable address and firewall it from the LAN. The repository's optional `chrome-debug.bat` starts an isolated Windows profile on port `9222` and binds to all interfaces, so close that Chrome profile when finished and restrict the Windows Firewall rule if this is used beyond a temporary local test.
 
