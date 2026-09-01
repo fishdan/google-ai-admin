@@ -32,6 +32,7 @@ As a Workspace administrator, I want to list the groups in my production Workspa
 - FR-004: The CLI MUST paginate through all available users and groups.
 - FR-005: The CLI MUST provide separate commands for users and groups.
 - FR-006: The CLI MUST avoid printing client secrets, access tokens, or refresh tokens.
+- FR-007: The CLI MUST support read-only inspection of Gmail filters and forwarding addresses without reading message content.
 
 ## Assumptions
 

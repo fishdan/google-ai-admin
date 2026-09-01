@@ -15,3 +15,4 @@
 - Validation: dependencies installed in local `.venv`; syntax/help checks pass; OAuth authorization completed and `.secrets/token.json` was created with mode `600`.
 - First API call is blocked until the Admin SDK API is enabled in the Google Cloud project.
 - Validation complete after enabling the Admin SDK API: `list-users` returned 11 users and `list-groups` returned 7 groups; both commands exited successfully.
+- Requested Gmail settings authorization to inspect the administrator's filter and forwarding configuration without reading messages; added the `gmail.settings.basic` scope and an `inspect-gmail-routing` command.

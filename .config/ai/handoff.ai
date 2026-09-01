@@ -1,1 +1,10 @@
 # Handoff
+
+## 2026-09-01 — Gmail routing inspection
+
+- Branch: `main`
+- Current task: verify the production Gmail filter that forwards Google Voice mail to `texting@reelreport.com`.
+- Files modified: `google_workspace_admin.py`, `specs/001-list-users-groups/spec.md`, `specs/001-list-users-groups/tasks.md`, `.config/ai/progress.ai`.
+- Tests executed: Python dependency installation, `py_compile`, CLI help, users/groups API calls; users/groups succeeded. Gmail authorization is pending.
+- Known issue: the agent environment cannot receive the browser OAuth localhost callback. Private-IP callbacks are rejected by Google OAuth.
+- Recommended next action: from the same WSL/Linux terminal that contains this repository, run `./.venv/bin/python google_workspace_admin.py inspect-gmail-routing` and complete the fresh OAuth consent flow in the browser. Do not paste the callback URL or authorization code into chat.

@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import socket
 import sys
 from pathlib import Path
 
@@ -21,6 +23,7 @@ TOKEN_PATH = SECRETS_DIR / "token.json"
 SCOPES = [
     "https://www.googleapis.com/auth/admin.directory.user.readonly",
     "https://www.googleapis.com/auth/admin.directory.group.readonly",
+    "https://www.googleapis.com/auth/gmail.settings.basic",
 ]
 
 
@@ -47,7 +50,10 @@ def authorize() -> Credentials:
     SECRETS_DIR.mkdir(mode=0o700, exist_ok=True)
     credentials = None
     if TOKEN_PATH.exists():
-        credentials = Credentials.from_authorized_user_file(str(TOKEN_PATH), SCOPES)
+        credentials = Credentials.from_authorized_user_file(str(TOKEN_PATH))
+        granted_scopes = set(credentials.scopes or ())
+        if not set(SCOPES).issubset(granted_scopes):
+            credentials = None
 
     if not credentials or not credentials.valid:
         if credentials and credentials.expired and credentials.refresh_token:
@@ -56,7 +62,15 @@ def authorize() -> Credentials:
             flow = InstalledAppFlow.from_client_secrets_file(
                 str(client_secret_path()), SCOPES
             )
-            credentials = flow.run_local_server(port=0)
+            oauth_host = os.environ.get("GOOGLE_OAUTH_HOST", "localhost")
+            credentials = flow.run_local_server(
+                host=oauth_host,
+                bind_addr=oauth_host,
+                port=0,
+                timeout_seconds=300,
+                device_id=socket.gethostname(),
+                device_name="google-ai-admin-local",
+            )
         TOKEN_PATH.write_text(credentials.to_json(), encoding="utf-8")
         TOKEN_PATH.chmod(0o600)
     return credentials
@@ -91,10 +105,37 @@ def list_groups(service) -> int:
     return count
 
 
+def inspect_gmail_routing(service) -> int:
+    """Print Gmail filters and forwarding settings, never message contents."""
+    filters = service.users().settings().filters().list(userId="me").execute()
+    print("Filters:")
+    for item in filters.get("filter", []):
+        criteria = item.get("criteria", {})
+        action = item.get("action", {})
+        print(f"  id={item.get('id', '')}")
+        print(f"    criteria={json.dumps(criteria, sort_keys=True)}")
+        print(f"    action={json.dumps(action, sort_keys=True)}")
+
+    forwarding = service.users().settings().forwardingAddresses().list(userId="me").execute()
+    print("Forwarding addresses:")
+    addresses = forwarding.get("forwardingAddresses", [])
+    if not addresses:
+        print("  None configured")
+    else:
+        for address in addresses:
+            print(
+                f"  {address.get('forwardingEmail', '')} "
+                f"(verification={address.get('verificationStatus', 'unknown')})"
+            )
+    return 0
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "command", choices=("list-users", "list-groups"), help="Directory operation"
+        "command",
+        choices=("list-users", "list-groups", "inspect-gmail-routing"),
+        help="Read-only Workspace operation",
     )
     return parser.parse_args()
 
@@ -106,8 +147,11 @@ def main() -> int:
         service = build("admin", "directory_v1", credentials=credentials)
         if args.command == "list-users":
             list_users(service)
-        else:
+        elif args.command == "list-groups":
             list_groups(service)
+        else:
+            gmail = build("gmail", "v1", credentials=credentials)
+            inspect_gmail_routing(gmail)
         return 0
     except (FileNotFoundError, RuntimeError, json.JSONDecodeError) as error:
         print(f"Setup error: {error}", file=sys.stderr)

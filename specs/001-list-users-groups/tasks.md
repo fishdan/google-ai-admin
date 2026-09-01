@@ -6,3 +6,4 @@
 - [x] Implement paginated group listing.
 - [x] Add CLI help and actionable error handling.
 - [x] Validate syntax and secret-file exclusion.
+- [x] Add read-only Gmail filter and forwarding inspection.
