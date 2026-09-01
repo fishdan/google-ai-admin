@@ -163,7 +163,7 @@ codex mcp add chrome-devtools -- npx chrome-devtools-mcp@latest --isolated --no-
 
 Restart the AI client after changing its MCP configuration. The server starts the isolated browser when a browser tool is first used. A safe smoke test is to ask the AI to open `https://example.com` and report only the page title and URL.
 
-To connect to an existing Chrome session instead, Chrome must expose a local DevTools endpoint and the MCP configuration must use `--browser-url=http://127.0.0.1:<PORT>`. Keep that endpoint local; do not use an arbitrary private network IP or expose it publicly. This mode can be difficult when Chrome and the AI client run in different environments such as Windows and WSL.
+To connect to an existing Chrome session instead, Chrome must expose a local DevTools endpoint and the MCP configuration must use `--browser-url=http://127.0.0.1:<PORT>`. Keep that endpoint local and protected. If Chrome and the AI client run in different environments such as Windows and WSL, a host gateway address may be required; use the narrowest reachable address and firewall it from the LAN. The repository's optional `chrome-debug.bat` starts an isolated Windows profile on port `9222` and binds to all interfaces, so close that Chrome profile when finished and restrict the Windows Firewall rule if this is used beyond a temporary local test.
 
 Useful checks:
 
