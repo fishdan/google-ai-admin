@@ -1,0 +1,144 @@
+# Google AI Admin
+
+Command-line tools for helping a Google Workspace administrator inspect and manage a Workspace using Google's APIs.
+
+This repository currently provides read-only tools for:
+
+- Listing Workspace users
+- Listing Workspace groups
+- Inspecting Gmail filters and forwarding addresses
+
+The setup below is intentionally generic. Replace values such as `<ADMIN_EMAIL>` and `<PROJECT_ID>` with your own information. Never commit credentials or paste them into an AI chat.
+
+## Prerequisites
+
+- A Google Workspace domain
+- A Workspace administrator account
+- A Google Cloud project associated with that Workspace
+- Python 3.10 or newer
+
+## 1. Create or select a Google Cloud project
+
+Open the [Google Cloud Console](https://console.cloud.google.com/), select an existing project, or create a new one. Record the project ID; you will use it when enabling APIs.
+
+## 2. Configure the OAuth consent screen
+
+In the Cloud Console:
+
+1. Open **Google Auth Platform**.
+2. Under **Branding**, click **Get started** if the platform is not configured.
+3. Enter an application name, support email, and developer contact email.
+4. Under **Audience**, select **Internal** when the tool is only for users in your Workspace organization.
+5. Finish and save the configuration.
+
+## 3. Create the Desktop OAuth client
+
+1. Open **Google Auth Platform → Clients** (or **APIs & Services → Credentials** in the older console layout).
+2. Click **Create Client** or **Create credentials → OAuth client ID**.
+3. Select application type **Desktop app**.
+4. Name it something recognizable, such as `Workspace Admin CLI`.
+5. Download the JSON file.
+
+Create the local secrets directory and place the downloaded file there. Renaming it is recommended:
+
+```bash
+mkdir -p .secrets
+mv ~/Downloads/client_secret_*.json .secrets/client_secret.json
+```
+
+The CLI accepts one OAuth client JSON file with any filename, but it must be the only non-token `.json` file in `.secrets`.
+
+## 4. Enable the required APIs
+
+For user and group listings, enable **Admin SDK API**. For Gmail filter and forwarding inspection, also enable **Gmail API**.
+
+You can find both under **APIs & Services → Library**. Direct links, after replacing `<PROJECT_ID>`, are:
+
+```text
+https://console.cloud.google.com/apis/library/admin.googleapis.com?project=<PROJECT_ID>
+https://console.cloud.google.com/apis/library/gmail.googleapis.com?project=<PROJECT_ID>
+```
+
+If the CLI reports that an API has not been used or is disabled, open the corresponding link, click **Enable**, wait briefly for propagation, and retry.
+
+## 5. Install the local Python environment
+
+From the repository root:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/pip install -r requirements.txt
+```
+
+The virtual environment and all secret files are excluded from Git.
+
+## 6. Authorize the administrator account
+
+Run one of the CLI commands below. On first use, the CLI prints a Google authorization URL. Copy that URL into a browser, sign in as `<ADMIN_EMAIL>`, and approve the requested read-only permissions.
+
+```bash
+.venv/bin/python google_workspace_admin.py list-users
+```
+
+The resulting OAuth token is stored locally as `.secrets/token.json` with restrictive permissions. Later runs reuse that token.
+
+The CLI requests only these scopes:
+
+- `admin.directory.user.readonly`
+- `admin.directory.group.readonly`
+- `gmail.settings.basic` (only needed for Gmail settings inspection)
+
+## 7. List Workspace users and groups
+
+```bash
+.venv/bin/python google_workspace_admin.py list-users
+.venv/bin/python google_workspace_admin.py list-groups
+```
+
+The output contains directory email addresses and display names. The commands follow pagination and list all results.
+
+## 8. Inspect Gmail filters and forwarding
+
+```bash
+.venv/bin/python google_workspace_admin.py inspect-gmail-routing
+```
+
+This displays Gmail filter criteria/actions and configured forwarding addresses. It does not read email messages.
+
+For a Google Voice forwarding workflow, verify that:
+
+1. A filter matches the expected Google Voice sender or search query.
+2. The filter action forwards to the intended group address, such as `<GROUP_ADDRESS>`.
+3. The forwarding address is marked `accepted` or otherwise verified.
+4. Group membership and member delivery settings allow the message to reach the intended recipients.
+
+This confirms the configuration, but only an actual test message confirms end-to-end delivery.
+
+## OAuth and localhost troubleshooting
+
+- Do not paste an OAuth callback URL or authorization code into chat. Callback URLs contain temporary authorization material.
+- The authorization URL is not the same thing as the `gmail.settings.basic` scope identifier; do not browse directly to the scope identifier.
+- Use the newest authorization URL printed by the currently running command. Older URLs expire or belong to a different local callback session.
+- The supported Desktop OAuth callback is a loopback `localhost` URL. Do not replace it with an arbitrary private network IP; Google may reject that request as invalid.
+- If the browser and CLI run in different environments (for example, a Windows browser and a remote Linux/WSL shell), run the command from the same local environment that owns the repository, or use a local terminal/browser arrangement where the printed `localhost:<PORT>` callback can reach the running CLI.
+- If a previous attempt timed out, rerun the command to generate a fresh authorization URL.
+
+## Security notes
+
+- Keep `.secrets/client_secret.json` and `.secrets/token.json private.
+- Do not commit, upload, or paste secret files or OAuth callback URLs.
+- Use read-only scopes whenever possible.
+- Revoke the app's access from the administrator's Google Account security settings if a token or credential may have been exposed.
+- Service-account keys and domain-wide delegation are intentionally not part of this initial setup. Add them only when unattended automation is explicitly required.
+
+## Development
+
+The project follows the repository's SpecKit workflow. The first feature specification is in `specs/001-list-users-groups/`.
+
+Run a syntax check and view command help with:
+
+```bash
+.venv/bin/python -m py_compile google_workspace_admin.py
+.venv/bin/python google_workspace_admin.py --help
+```
