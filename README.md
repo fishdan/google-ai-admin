@@ -142,3 +142,36 @@ Run a syntax check and view command help with:
 .venv/bin/python -m py_compile google_workspace_admin.py
 .venv/bin/python google_workspace_admin.py --help
 ```
+
+## Chrome DevTools MCP
+
+The project specification for this integration is in `specs/003-chrome-devtools-mcp/`. The official Chrome DevTools MCP server requires Node.js LTS, npm, and current Chrome. The package can be run through `npx`, so no repository dependency is needed.
+
+The recommended initial configuration uses an isolated Chrome profile. This allows the server to launch a clean browser for smoke tests without exposing an existing signed-in browser profile:
+
+```toml
+[mcp_servers.chrome-devtools]
+command = "npx"
+args = ["-y", "chrome-devtools-mcp@latest", "--isolated", "--no-usage-statistics"]
+```
+
+For Codex, add the equivalent entry with:
+
+```bash
+codex mcp add chrome-devtools -- npx chrome-devtools-mcp@latest --isolated --no-usage-statistics
+```
+
+Restart the AI client after changing its MCP configuration. The server starts the isolated browser when a browser tool is first used. A safe smoke test is to ask the AI to open `https://example.com` and report only the page title and URL.
+
+To connect to an existing Chrome session instead, Chrome must expose a local DevTools endpoint and the MCP configuration must use `--browser-url=http://127.0.0.1:<PORT>`. Keep that endpoint local; do not use an arbitrary private network IP or expose it publicly. This mode can be difficult when Chrome and the AI client run in different environments such as Windows and WSL.
+
+Useful checks:
+
+```bash
+node --version
+npm --version
+npx -y chrome-devtools-mcp@latest --version
+npx -y chrome-devtools-mcp@latest --help
+```
+
+The official project documents additional AI-client configurations and options in its [ChromeDevTools/chrome-devtools-mcp repository](https://github.com/ChromeDevTools/chrome-devtools-mcp), and Chrome provides the [DevTools for agents setup guide](https://developer.chrome.com/docs/devtools/agents/get-started).
