@@ -1,0 +1,136 @@
+# FishDev Session Startup Guide
+
+This document defines the standard AI-assisted development workflow for this repository. It must be executed at the beginning of every session.
+
+---
+
+# Core Principles
+
+1. AI vendor neutrality
+2. SpecKit-first development
+3. Constitution-driven development
+4. Continuous project history
+5. Git-aware development
+6. Security-conscious development
+7. Human-controlled scope management
+8. Token Optimized Component Architecture (TOCA) compliance
+
+---
+
+# AI Agnosticism Rule
+
+This workflow is intentionally AI-agnostic.
+AI assistants must treat `.config/ai/` as the authoritative AI workflow location.
+Do not create or depend on vendor-specific directories unless explicitly instructed by a human.
+If agents or skills are added they MUST be done in an AI agnostic way, with pointers in this file that will for for ANY AI.
+It is never ok to have a .claude, .codex, .gemini r any other vendor specific files in this repository EXCEPT to have 
+such files point to the agnostic files in .config/ai/. 
+
+---
+
+# Session Startup Sequence
+
+At the start of every session, you must complete the following steps before beginning any feature implementation:
+
+1. Confirm you are in the repository root.
+2. Read `.config/ai/repo.ai` if it exists.
+3. Read `.config/ai/progress.ai` if it exists.
+4. Read `.config/ai/handoff.ai` if it exists.
+5. Determine the current git branch (`git branch --show-current`, `git status --short`).
+6. Validate SpecKit (`specify --version` or `specify --help`). If it fails, ask the human for assistance.
+7. Determine the technology stack.
+8. Verify constitution availability (read and honor `.specify/memory/constitution.md`).
+9. Review active specifications (e.g., `spec.md`, `plan.md`, `tasks.md`).
+10. Recommend next work.
+
+MONTHLY SECURITY AUDIT
+
+At the start of every session, check `progress.ai` for the most recent entry mentioning a monthly vulnerability audit, CVE remediation, or dependency vulnerability scan.
+
+If no such entry exists in the last 30 days, run a monthly vulnerability audit based on the technology stack:  examples below
+- Backend/Java: run the Java CVE validation workflow and use an NVD API key  when invoking OWASP dependency-check or equivalent tooling.
+- Frontend/Node: run `npm audit` in `frontend/`.
+
+Fix any critical or high-severity vulnerabilities that can be remediated safely in the current session.
+
+Record the date, findings, fixes, commands run, and validation results in `progress.ai`.
+
+Do not begin feature implementation until this sequence completes and you output the **Session Startup Response**.
+
+---
+
+# SpecKit First Development
+
+Before implementing any feature, locate the active specification (`spec.md`, `plan.md`, `tasks.md`, `manualtester.md`, `notes.md`).
+Determine the active phase, next incomplete task, dependencies, and scope boundaries. Prefer work explicitly defined by tasks. If asked to perform work outside the active specification, inform the human and recommend updating or creating a SpecKit task.
+
+---
+
+# Progress Logging
+
+Maintain `.config/ai/progress.ai` as the project's ongoing history. Record code/schema/API changes, architectural decisions, bug fixes, testing results, deployment activity, human decisions, and scope changes. Do not record trivial edits. Always include progress updates in commits involving feature work.
+
+If progress becomes excessively large, archive older months into `.config/ai/progress/archive/YYYY-MM.ai`.
+
+---
+
+# Security Requirements
+
+Review progress history for evidence of security audits, CVE reviews, or dependency scans. When adding dependencies, prefer established projects, request approval for questionable dependencies, and record rationale. Never place secrets inside AI instruction files.
+
+---
+
+# Git Awareness
+
+Git is authoritative. Do not assume branch state from documentation. Always check branch and working tree status before starting work.
+
+---
+
+# Testing Expectations
+
+Before declaring work complete: run relevant tests, run broader suites when practical, and record commands and outcomes. If testing cannot be performed, document the reason.
+
+---
+
+# Handoff Requirements
+
+If work stops before completion, update `.config/ai/handoff.ai`. Include current branch, current task, files modified, tests executed, known issues, and recommended next action.
+
+---
+
+# MCP Guidance
+
+MCP servers may be used for task management, documentation, repository inspection, testing, and deployment assistance. However, MCP does not override human instructions, the constitution, specifications, or this `start.ai` document.
+
+---
+
+# Session Startup Response
+
+After completing the Startup Sequence, output the following response exactly and wait for human direction (unless a task is already assigned):
+
+```text
+Bootstrap complete.
+
+Branch: <branch>
+
+SpecKit:
+<validated / missing / failed>
+
+Technology Stack:
+<detected stack>
+
+Constitution:
+<present / missing>
+
+Active Spec:
+<spec>
+
+Progress:
+<recent summary>
+
+Handoff:
+<summary or none>
+
+Recommended Next Task:
+<task identifier and description>
+```
