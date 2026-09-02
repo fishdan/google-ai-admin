@@ -9,4 +9,5 @@
 - [x] T005 Add tests for timeout parsing, WSL detection, and browser precedence.
 - [x] T006 Document the environment variables and the warning in the README.
 - [x] T007 Run tests, syntax checks, and a live authorization attempt.
+- [x] T009 Use a non-blocking browser class and default to a private window (FR-008, FR-009).
 - [x] T008 Record implementation and validation in progress history and update handoff.

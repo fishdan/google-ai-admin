@@ -254,6 +254,46 @@ class OAuthFlowTests(unittest.TestCase):
         )
         self.assertIsNone(chosen)
 
+    def test_registered_browser_does_not_block_on_the_browser_process(self):
+        # GenericBrowser calls p.wait(); the callback server would then never
+        # run until the browser window was closed.
+        import webbrowser
+
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = Path(tmp) / "chrome.exe"
+            fake.write_text("")
+            admin.register_host_browser({}, candidates=(str(fake),))
+            registered = webbrowser._browsers["wsl-host-browser"][1]
+        self.assertIsInstance(registered, webbrowser.BackgroundBrowser)
+        self.assertNotIn("%s", [registered.name])
+        self.assertIn("--incognito", registered.args)
+
+    def test_private_window_flag_matches_the_browser(self):
+        self.assertEqual(
+            admin.browser_arguments("/mnt/c/…/chrome.exe", {}), ["--incognito"]
+        )
+        self.assertEqual(
+            admin.browser_arguments("/mnt/c/…/msedge.exe", {}), ["--inprivate"]
+        )
+        self.assertEqual(admin.browser_arguments("/usr/bin/firefox", {}), [])
+
+    def test_browser_arguments_can_be_overridden(self):
+        self.assertEqual(
+            admin.browser_arguments(
+                "/mnt/c/…/chrome.exe",
+                {"GOOGLE_OAUTH_BROWSER_ARGS": '--profile-directory="Profile 2"'},
+            ),
+            ["--profile-directory=Profile 2"],
+        )
+
+    def test_browser_arguments_can_be_disabled(self):
+        self.assertEqual(
+            admin.browser_arguments(
+                "/mnt/c/…/chrome.exe", {"GOOGLE_OAUTH_BROWSER_ARGS": ""}
+            ),
+            [],
+        )
+
     def test_missing_windows_browser_falls_back_silently(self):
         self.assertIsNone(
             admin.register_host_browser({}, candidates=("/nonexistent/chrome.exe",))

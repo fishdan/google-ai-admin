@@ -240,7 +240,8 @@ This confirms the configuration, but only an actual test message confirms end-to
 - If a previous attempt timed out, rerun the command to generate a fresh authorization URL.
 - **Never send an authorization URL or a `localhost` callback address to anyone**, including an AI assistant. If your browser is left showing `http://localhost:<port>/?...&code=...`, that is a single-use authorization code: close the tab and rerun the command. Nothing ever needs to be copied out of the browser.
 - Authorization waits 15 minutes by default. Set `GOOGLE_OAUTH_TIMEOUT` (in seconds) to change it: `GOOGLE_OAUTH_TIMEOUT=1800 .venv/bin/python google_workspace_admin.py list-users`.
-- Under WSL the CLI opens your Windows browser automatically. If you see a list of `xdg-open: ... not found` errors, no Windows browser was found at the usual paths; set `BROWSER` to one, or copy the printed URL into a browser yourself.
+- Under WSL the CLI opens your Windows browser automatically, in a private window so that a machine with many browser profiles does not authorize through whichever profile was last used. Set `GOOGLE_OAUTH_BROWSER_ARGS` to change that — for example `--profile-directory="Profile 2"` to target one profile, or an empty value to use the default window. If you see a list of `xdg-open: ... not found` errors, no Windows browser was found at the usual paths; set `BROWSER` to one.
+- `check-setup` reporting `Ready` means your **local** setup is valid — files, permissions, and token scopes. It never contacts Google, so it cannot tell you whether the required APIs are enabled in that profile's Cloud project. If a command then fails with `Admin SDK API has not been used in project <N>`, enable it for that project: `gcloud services enable admin.googleapis.com --project=<N>`, or click Enable in the Cloud Console. Each profile has its own Cloud project and needs this separately, and it requires an account with `serviceusage.services.enable` in **that** project.
 - If you copy the authorization URL by hand and Google reports `Error 400: invalid_scope`, the copy was truncated at a terminal line wrap. The scopes are fine — copy the entire URL, or let the CLI open the browser for you.
 - If a command that used to work starts reporting `More than one OAuth client JSON is in .secrets`, a new client file was added under Google's download name. Rename it to `client_secret-<profile>.json` for the profile it belongs to.
 - Credential files copied from a Windows filesystem often arrive world-readable. Run `chmod 600` on them; the readiness check will tell you which file is affected.
@@ -288,6 +289,7 @@ The test suite uses fixture directories and never contacts Google or reads real 
 | `GOOGLE_OAUTH_TIMEOUT` | Seconds to wait for browser authorization | `900` |
 | `GOOGLE_OAUTH_HOST` | Host for the local OAuth callback | `localhost` |
 | `BROWSER` | Browser used to open the authorization URL | Windows browser under WSL, otherwise the system default |
+| `GOOGLE_OAUTH_BROWSER_ARGS` | Extra flags for that browser | a private window (`--incognito` / `--inprivate`) |
 
 ## Chrome DevTools MCP
 

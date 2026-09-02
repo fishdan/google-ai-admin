@@ -56,6 +56,8 @@ As a user, I want to be warned that the authorization URL and anything the brows
 - **FR-005**: The CLI MUST warn, at the point of printing the authorization URL, that the URL and callback are credential material that must never be shared.
 - **FR-006**: A timeout MUST produce a message explaining the exposure and the recovery, not a bare stack trace or silent exit.
 - **FR-007**: No warning or diagnostic may itself print an authorization code, token, or client secret.
+- **FR-008**: The registered browser MUST NOT block the callback server. A browser opened with a class that waits for the process to exit prevents the local server from ever handling the redirect.
+- **FR-009**: The browser SHOULD open a private window by default so that a machine with many browser profiles does not authorize through whichever profile was last used. `GOOGLE_OAUTH_BROWSER_ARGS` MUST override this, including an empty value to disable it.
 
 ## Non-goals
 

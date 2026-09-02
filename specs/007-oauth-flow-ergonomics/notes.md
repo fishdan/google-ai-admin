@@ -75,6 +75,30 @@ The README's Chrome DevTools MCP section describes `chrome-debug.bat` as "the re
 
 **Open**: neither is addressed by `007`.
 
+### N12 — The fix for N4 introduced a worse failure
+
+`register_host_browser()` was first written with `webbrowser.GenericBrowser`, whose `open()` calls `p.wait()`. Chrome does not exit while a window is open, so the CLI blocked inside the browser launch: the authorization URL was never printed and `handle_request()` was never reached, meaning the callback server would not have answered a redirect even if consent had been completed. The user reported it as "Chrome did not open, or I missed it"; the process was in `do_wait` on the browser.
+
+`webbrowser.BackgroundBrowser` returns as soon as the process starts. A test now asserts the registered instance is the non-blocking class.
+
+**Resolved**, with the lesson that a fix for an ergonomics defect can silently disable the mechanism it was meant to help.
+
+### N13 — The browser opened the wrong profile
+
+On a machine with many Chrome profiles, the browser opened whichever profile was last used, and the consent screen was easy to miss among open windows. Authorization now requests a private window (`--incognito`, or `--inprivate` for Edge), which both removes the profile ambiguity and forces an explicit account choice. `GOOGLE_OAUTH_BROWSER_ARGS` overrides it.
+
+### N14 — "Ready" overpromises
+
+`check-setup` reported `Ready` for two profiles whose commands were guaranteed to fail, because the Admin SDK API was not enabled in their Cloud projects. The gate deliberately never contacts Google, which is correct for an offline check, but the word "Ready" implies more than local validity.
+
+**Open**: the wording should distinguish local setup from Google-side configuration, and the per-profile API enable step should be named. No network call should be added.
+
+### N15 — Enabling an API is a cross-organization permission, not a tool capability
+
+Asked whether the stored token removed the need for a browser, the answer is only partly yes: the token authorizes read calls without a browser, but enabling an API is a write to a Cloud project requiring `serviceusage.services.enable` and the `cloud-platform` scope — which would itself need a fresh browser consent and would grant this read-only tool write access to the whole project. `gcloud` is the correct instrument. In practice one org's admin (`dan@people4liberty.org`) could enable its own project but got `PERMISSION_DENIED` on the third organization's project, confirming this is an IAM boundary rather than anything the tool can resolve.
+
+Separately, `gcloud auth login` failed through the identical `xdg-open` browser list under WSL. The defect N4 describes is not unique to this project.
+
 ## Outcome
 
-Authorization for the second organization completed at 14:38 with exactly one scope granted (`admin.directory.user.readonly`), a refresh token present, and the token at mode `600`. The default profile was unaffected throughout.
+Three organizations are authorized side by side, each with its own Internal OAuth client and its own token at mode `600`, each holding exactly the one read-only scope its command required: the original Workspace (11 users), `people4liberty.org` (4 users), and `home4liberty.org` (1 user). The default profile was unaffected throughout.

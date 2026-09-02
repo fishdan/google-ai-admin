@@ -9,6 +9,7 @@ import json
 import os
 import platform
 import re
+import shlex
 import socket
 import webbrowser
 import stat
@@ -53,6 +54,9 @@ WINDOWS_BROWSERS = (
     "/mnt/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
     "/mnt/c/Program Files/Microsoft/Edge/Application/msedge.exe",
 )
+# A private window avoids launching whichever profile the browser used last,
+# and forces an explicit account choice for the organization being authorized.
+PRIVATE_WINDOW_FLAGS = {"chrome.exe": "--incognito", "msedge.exe": "--inprivate"}
 
 DEPENDENCIES = {
     "google-api-python-client": "googleapiclient",
@@ -273,11 +277,26 @@ def register_host_browser(environ=None, candidates=WINDOWS_BROWSERS) -> str | No
             webbrowser.register(
                 "wsl-host-browser",
                 None,
-                webbrowser.GenericBrowser(candidate),
+                # BackgroundBrowser returns as soon as the browser starts.
+                # GenericBrowser waits for it to exit, which blocks the
+                # callback server for as long as the window stays open.
+                webbrowser.BackgroundBrowser(
+                    [candidate, *browser_arguments(candidate, env), "%s"]
+                ),
                 preferred=True,
             )
             return candidate
     return None
+
+
+def browser_arguments(browser_path: str, environ=None) -> list[str]:
+    """Return extra browser flags, defaulting to a private window."""
+    env = environ if environ is not None else os.environ
+    override = env.get("GOOGLE_OAUTH_BROWSER_ARGS")
+    if override is not None:
+        return shlex.split(override)
+    flag = PRIVATE_WINDOW_FLAGS.get(Path(browser_path).name.lower())
+    return [flag] if flag else []
 
 
 def requested_scopes(required: list[str], granted: set[str]) -> list[str]:
