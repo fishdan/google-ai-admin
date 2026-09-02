@@ -122,6 +122,27 @@ The virtual environment and all secret files are excluded from Git.
 
 The readiness gate checks that `.secrets` is private, exactly one valid Desktop OAuth client is present, the generated token exists and is private, and which commands the token's scopes authorize. It does not print credential values or contact Google.
 
+A partially authorized install looks like this — the check passes, and names exactly what each unauthorized command is waiting for:
+
+```text
+✓ Python dependency: google-api-python-client
+✓ Python dependency: google-auth-oauthlib
+✓ Private secrets folder: .secrets
+✓ Desktop OAuth client: present and private
+✓ Google authorization: token present and private (token.json)
+
+Command authorization:
+  - inspect-gmail-routing: ready
+  - list-groups: not authorized
+      missing scope: https://www.googleapis.com/auth/admin.directory.group.readonly
+  - list-users: not authorized
+      missing scope: https://www.googleapis.com/auth/admin.directory.user.readonly
+
+Ready: local tools and Google authorization are configured.
+```
+
+`check-setup` exits `0` when at least one command is authorized and `2` when required setup is missing, so it is safe to use as a gate in a script.
+
 ## 6. Authorize the administrator account
 
 Run one of the CLI commands below. On first use, the CLI prints a Google authorization URL. Copy that URL into a browser, sign in as `<ADMIN_EMAIL>`, and approve the requested read-only permissions.
@@ -190,6 +211,9 @@ This confirms the configuration, but only an actual test message confirms end-to
 - The supported Desktop OAuth callback is a loopback `localhost` URL. Do not replace it with an arbitrary private network IP; Google may reject that request as invalid.
 - If the browser and CLI run in different environments (for example, a Windows browser and a remote Linux/WSL shell), run the command from the same local environment that owns the repository, or use a local terminal/browser arrangement where the printed `localhost:<PORT>` callback can reach the running CLI.
 - If a previous attempt timed out, rerun the command to generate a fresh authorization URL.
+- If authorization stops working roughly every seven days, the OAuth client is **External** and still in **Testing**. Refresh tokens for restricted scopes expire on that schedule; see [Why the audience choice matters](#why-the-audience-choice-matters).
+- If a command reports a missing scope, just run that command. It requests the scope it needs and keeps the permissions the token already holds; there is no need to delete the token first.
+- If `check-setup` reports that authorization is not complete on an install that was working, confirm the `--profile` value. Each profile has its own token, and omitting `--profile` uses the default one.
 
 ## Security notes
 
@@ -201,14 +225,26 @@ This confirms the configuration, but only an actual test message confirms end-to
 
 ## Development
 
-The project follows the repository's SpecKit workflow. The first feature specification is in `specs/001-list-users-groups/`.
+The project follows the repository's SpecKit workflow. Every change starts from a specification in `specs/`:
 
-Run a syntax check and view command help with:
+| Specification | Subject |
+| --- | --- |
+| `specs/001-list-users-groups/` | Read-only Directory listing CLI |
+| `specs/002-workspace-admin-foundation/` | Initial Workspace admin milestone |
+| `specs/003-chrome-devtools-mcp/` | Chrome DevTools MCP integration |
+| `specs/004-user-friendly-bootstrap/` | One-command installer and readiness gate |
+| `specs/005-installer-hardening/` | Installer preflight, profiles, per-command scopes |
+
+Run the tests, a syntax check, and command help with:
 
 ```bash
+.venv/bin/python -m unittest discover -s tests -v
 .venv/bin/python -m py_compile google_workspace_admin.py
 .venv/bin/python google_workspace_admin.py --help
+bash -n install.sh
 ```
+
+The test suite uses fixture directories and never contacts Google or reads real credentials.
 
 ## Chrome DevTools MCP
 
