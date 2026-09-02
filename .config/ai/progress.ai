@@ -12,7 +12,8 @@
 - README (second pass): added a sample partially-authorized `check-setup` transcript with its exit-code contract, troubleshooting entries for the seven-day External/Testing expiry symptom, missing-scope recovery, and wrong-`--profile` confusion, and a Development section listing every specification plus the test command. The test suite had never been documented.
 - Human decision: the reporter's two multi-tenant items were folded into this single spec rather than deferred to 006.
 - Validation: `python3 -m unittest discover -s tests -v` (13 passed, up from 4), `bash -n install.sh`, `py_compile`, CLI `--help`, live `check-setup` (ready, all three commands), unknown-profile and unsafe-profile runs (exit 2, no files written), and three simulated installer runs — missing `ensurepip` (guided failure, no directory changes), poisoned `.venv` (removed, rebuilt, dependencies installed), and fresh install from an empty directory into `GOOGLE_AI_ADMIN_DIR` (empty directory untouched, path reported).
-- Not validated locally: the published `curl | bash` path from `main`, which still depends on merging 004 and 005.
+- Merged to `main` as PR #4. Post-merge validation on `main`: unittest suite (13 passed) and live `check-setup` (ready, all three commands); the published `install.sh` on `main` is byte-identical to the merged file. Spec 004 had already merged as PR #3, so 005 targeted `main` directly rather than being stacked.
+- Still not validated: the guided `ensurepip` failure on a real Debian/Ubuntu machine without `python3-venv`; it has only been simulated with a stub interpreter.
 
 ## 2026-09-02 — User-friendly Workspace bootstrap
 
