@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parent
 SECRETS_DIR = ROOT / ".secrets"
 DEFAULT_PROFILE = "default"
 PROFILE_PATTERN = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9._-]{0,31}\Z")
+PROFILE_CLIENT_PREFIX = "client_secret"
 
 USER_SCOPE = "https://www.googleapis.com/auth/admin.directory.user.readonly"
 GROUP_SCOPE = "https://www.googleapis.com/auth/admin.directory.group.readonly"
@@ -66,11 +67,36 @@ def _is_token_file(path: Path) -> bool:
     return path.name == "token.json" or path.name.startswith("token-")
 
 
-def client_secret_path() -> Path:
+def _is_profile_client(path: Path) -> bool:
+    """Return whether a .secrets JSON file belongs to a named profile.
+
+    Google names a downloaded client `client_secret_<id>...json` with an
+    underscore, so the dash prefix only ever marks a profile's own client.
+    """
+    return path.name.startswith(f"{PROFILE_CLIENT_PREFIX}-")
+
+
+def client_secret_path(
+    profile: str = DEFAULT_PROFILE, secrets_dir: Path = SECRETS_DIR
+) -> Path:
+    """Return the OAuth client a profile authorizes against.
+
+    A named profile owns `client_secret-<profile>.json`, so each Workspace
+    organization can keep an Internal client in its own Cloud project.
+    """
+    if profile != DEFAULT_PROFILE:
+        path = secrets_dir / f"{PROFILE_CLIENT_PREFIX}-{validate_profile(profile)}.json"
+        if not path.is_file():
+            raise FileNotFoundError(
+                f"No OAuth client for profile {profile!r}. Download that "
+                f"Workspace's Desktop client and save it as: {path}"
+            )
+        return path
+
     candidates = sorted(
         path
-        for path in SECRETS_DIR.glob("*.json")
-        if not _is_token_file(path)
+        for path in secrets_dir.glob("*.json")
+        if not _is_token_file(path) and not _is_profile_client(path)
     )
     if not candidates:
         raise FileNotFoundError(
@@ -113,12 +139,13 @@ def check_setup(
     secrets_dir: Path = SECRETS_DIR,
     token_file: Path | None = None,
     output=print,
+    profile: str = DEFAULT_PROFILE,
 ) -> int:
     """Check local prerequisites without authorizing or contacting Google."""
     if token_file is None:
-        token_file = token_path(secrets_dir=secrets_dir)
+        token_file = token_path(profile, secrets_dir=secrets_dir)
     errors: list[str] = []
-    output("Google AI Admin readiness check")
+    output(f"Google AI Admin readiness check (profile: {profile})")
     output("(This check never prints credential contents or contacts Google.)")
 
     for distribution, module in DEPENDENCIES.items():
@@ -139,15 +166,16 @@ def check_setup(
     else:
         output("✓ Private secrets folder: .secrets")
 
-    client_files = sorted(
-        path for path in secrets_dir.glob("*.json") if not _is_token_file(path)
-    )
-    if len(client_files) == 0:
-        _setup_error(errors, "Desktop OAuth client JSON is missing from .secrets")
-    elif len(client_files) > 1:
+    try:
+        client_path = client_secret_path(profile, secrets_dir)
+    except FileNotFoundError as error:
+        client_path = None
+        _setup_error(errors, str(error))
+    except RuntimeError:
+        client_path = None
         _setup_error(errors, "More than one OAuth client JSON is in .secrets; keep only the intended one")
-    else:
-        client_path = client_files[0]
+
+    if client_path is not None:
         try:
             client = json.loads(client_path.read_text(encoding="utf-8"))
             installed = client.get("installed")
@@ -217,7 +245,7 @@ def authorize(required: list[str], profile: str = DEFAULT_PROFILE) -> Credential
             credentials.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                str(client_secret_path()), requested_scopes(required, granted)
+                str(client_secret_path(profile)), requested_scopes(required, granted)
             )
             oauth_host = os.environ.get("GOOGLE_OAUTH_HOST", "localhost")
             credentials = flow.run_local_server(
@@ -311,7 +339,7 @@ def main() -> int:
     try:
         profile = validate_profile(args.profile)
         if args.command == "check-setup":
-            return check_setup(token_file=token_path(profile))
+            return check_setup(token_file=token_path(profile), profile=profile)
         credentials = authorize(COMMAND_SCOPES[args.command], profile)
         if args.command == "list-users":
             list_users(build("admin", "directory_v1", credentials=credentials))

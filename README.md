@@ -177,6 +177,33 @@ Use `--profile` to keep each tenant's authorization separate:
 
 Each named profile stores its own token at `.secrets/token-<profile>.json`, so signing into one tenant does not overwrite another. Omitting `--profile` uses the default `.secrets/token.json`. Profile names accept letters, digits, dots, dashes, and underscores.
 
+#### Adding a second Workspace organization
+
+A profile in a **different** Workspace organization also needs its own OAuth client. An Internal client only accepts consent from users inside its own organization, so the second organization cannot reuse the first one's client — and downgrading to External would reintroduce the seven-day expiry described above.
+
+Give the profile its own client by saving that organization's downloaded Desktop client as `client_secret-<profile>.json`:
+
+1. In the **second organization's** Google Cloud Console, create or select a project that belongs to that Workspace.
+2. Configure the consent screen there with Audience → **Internal**, for the reasons in [Why the audience choice matters](#why-the-audience-choice-matters).
+3. Enable the **Admin SDK API**, and the **Gmail API** if you will inspect Gmail routing.
+4. Create a **Desktop app** OAuth client and download its JSON.
+5. Save it into the existing install, named for the profile:
+
+   ```bash
+   cd ~/.google-ai-admin   # or the path the installer printed
+   mv ~/Downloads/client_secret_*.json .secrets/client_secret-clientB.json
+   chmod 600 .secrets/client_secret-clientB.json
+   .venv/bin/python google_workspace_admin.py check-setup --profile clientB
+   ```
+
+6. Authorize from your own terminal, signing in as an administrator of that organization:
+
+   ```bash
+   .venv/bin/python google_workspace_admin.py list-users --profile clientB
+   ```
+
+The default profile keeps using its single unnamed client file, so an existing single-Workspace install is unaffected. Only files named `client_secret-<profile>.json` are treated as profile clients; Google's downloaded name uses an underscore (`client_secret_<id>...json`) and is never mistaken for one.
+
 ## 7. List Workspace users and groups
 
 ```bash

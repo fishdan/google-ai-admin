@@ -1,5 +1,15 @@
 # Progress Log
 
+## 2026-09-02 — Per-profile OAuth clients
+
+- Dogfooding 005's `--profile` against a second Workspace organization exposed a blocking gap: profiles owned their tokens but `.secrets` still accepted exactly one OAuth client, and an Internal client only accepts consent from its own organization. Managing two organizations was impossible without downgrading to an External client and weekly reauthorization.
+- Created branch `006-per-profile-oauth-clients` and `specs/006-per-profile-oauth-clients/`.
+- A named profile now resolves its client to `.secrets/client_secret-<profile>.json`; a missing one fails with the exact expected path before any browser flow starts.
+- Added `_is_profile_client` so profile clients are excluded from default-profile discovery. This is the same trap 005 fixed for tokens: without it, adding a second organization's client would trip the "more than one client" error for the default profile.
+- `check_setup` accepts a profile, validates that profile's client and token, and names the profile in its header.
+- Self-review caught a leak introduced during this work: the readiness line printed the client filename, which embeds the client ID under Google's default naming. Removed; the profile in the header is sufficient to disambiguate, and a test now asserts the filename is absent from output.
+- Validation: `python3 -m unittest discover -s tests` (20 passed, up from 13), `py_compile`, live `check-setup` for the default profile (still ready, all three commands), and a named-profile check reporting the exact missing client path. No real credentials were read or printed.
+
 ## 2026-09-02 — Installer hardening and per-command authorization
 
 - Created branch `005-installer-hardening` and `specs/005-installer-hardening/` from a first-time Ubuntu install report (Python 3.13.7) against the 004 installer.
