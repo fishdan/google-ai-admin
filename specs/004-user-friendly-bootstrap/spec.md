@@ -46,7 +46,7 @@ As a user or AI assistant, I want the constitution, startup guide, and README to
 - **FR-002**: The installer MUST support an existing checkout and a fresh install destination, MUST be idempotent for non-secret files, and MUST never print or overwrite secret contents.
 - **FR-003**: The installer MUST verify required local prerequisites before making setup changes.
 - **FR-004**: The CLI MUST provide a noninteractive readiness command with a nonzero exit status when required setup is incomplete.
-- **FR-005**: The readiness command MUST validate Python dependencies, `.secrets` directory permissions, exactly one Desktop OAuth client JSON, token presence, and all scopes declared in the tool.
+- **FR-005**: The readiness command MUST validate Python dependencies, `.secrets` directory permissions, exactly one Desktop OAuth client JSON, token presence, and all scopes declared in the tool. *(Superseded by `005-installer-hardening` FR-010: scopes are now validated per command, because commands request only the scopes they use.)*
 - **FR-006**: Diagnostics MUST identify the failed gate and remediation without displaying credential JSON, OAuth tokens, authorization codes, or secret values.
 - **FR-007**: The README MUST lead with the repository purpose and one-command install path, then explain the human steps for Google Cloud APIs, consent, OAuth, and AI use.
 - **FR-008**: Repository guidance MUST preserve read-only defaults, least privilege, and explicit confirmation before mutations.

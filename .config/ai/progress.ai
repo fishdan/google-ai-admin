@@ -1,5 +1,18 @@
 # Progress Log
 
+## 2026-09-02 — Installer hardening and per-command authorization
+
+- Created branch `005-installer-hardening` and `specs/005-installer-hardening/` from a first-time Ubuntu install report (Python 3.13.7) against the 004 installer.
+- Installer: added an `ensurepip` preflight with Debian/Ubuntu remediation naming both `python3-venv` and the version-specific package; removal of an incomplete or failed `.venv` so a failed run is retryable; and an `Installed to: <path>` line in the closing output.
+- CLI: added `--profile`, storing each tenant's authorization at `.secrets/token-<profile>.json` while the default profile keeps `.secrets/token.json`. Profile names are validated against a conservative pattern before any filesystem write.
+- CLI: OAuth client discovery now excludes every token file via `_is_token_file`, not just the literal `token.json`; a profile token would otherwise have been misread as a second client.
+- CLI: replaced the single all-or-nothing `SCOPES` consent with `COMMAND_SCOPES`. Each command requests only its own scope, unioned with scopes the existing token already grants, so consent never drops an earlier grant and a Gmail-only account is no longer blocked by directory scopes. Each command now builds only the API service it uses.
+- Readiness gate: `check-setup` reports per-command authorization, passes when at least one command is authorized, and names the missing scope and affected command otherwise. This supersedes 004 FR-005, which is annotated in that spec.
+- README: documented `GOOGLE_AI_ADMIN_DIR` and the default install location, warned that an empty directory is not used as the install target, anchored the credential snippet with `cd` into the install directory, documented profiles and per-command scopes, and explained why the OAuth audience choice matters — `admin.directory.*` are restricted scopes, External/Testing refresh tokens expire after seven days, External/Production requires a Google security assessment, and an Internal client in the target Workspace's own Cloud project avoids both.
+- Human decision: the reporter's two multi-tenant items were folded into this single spec rather than deferred to 006.
+- Validation: `python3 -m unittest discover -s tests -v` (13 passed, up from 4), `bash -n install.sh`, `py_compile`, CLI `--help`, live `check-setup` (ready, all three commands), unknown-profile and unsafe-profile runs (exit 2, no files written), and three simulated installer runs — missing `ensurepip` (guided failure, no directory changes), poisoned `.venv` (removed, rebuilt, dependencies installed), and fresh install from an empty directory into `GOOGLE_AI_ADMIN_DIR` (empty directory untouched, path reported).
+- Not validated locally: the published `curl | bash` path from `main`, which still depends on merging 004 and 005.
+
 ## 2026-09-02 — User-friendly Workspace bootstrap
 
 - Created branch `004-user-friendly-bootstrap` and specification for a one-command installer and local Google readiness gate.
