@@ -1,6 +1,6 @@
 # Google AI Admin
 
-Google AI Admin is a framework for asking an AI assistant to do approved work in your Google Workspace. It gives the assistant local, explicit Google tools and permissions, while keeping credentials on your computer and using the narrowest scopes needed by each workflow.
+Google AI Admin is a framework for helping a Google Workspace administrator use an AI assistant to do approved work in their Workspace. It gives the assistant local, explicit Google tools and permissions, while keeping credentials on the user's computer and using the narrowest scopes needed by each workflow.
 
 This repository currently provides read-only tools for:
 
