@@ -1,5 +1,14 @@
 # Handoff
 
+## 2026-09-02 — Installer hardening and per-command authorization
+
+- Branch: `005-installer-hardening` (branched from `004-user-friendly-bootstrap`, which is still unmerged).
+- Current task: review spec 005 and its implementation.
+- Files modified: `install.sh`, `google_workspace_admin.py`, `README.md`, `tests/test_setup.py`, `specs/005-installer-hardening/`, `specs/004-user-friendly-bootstrap/spec.md`, `.config/ai/progress.ai`.
+- Tests executed: unittest suite (13 passed), `bash -n`, `py_compile`, CLI help, live `check-setup`, profile rejection cases, and simulated installer failure/retry/fresh-install paths. All passed.
+- Known issues: (1) `004` and `005` must both merge to `main` before the published `curl | bash` command reflects these fixes; (2) an existing `.secrets/token.json` is not migrated into a named profile, by design; (3) `shellcheck` is not installed locally, so only `bash -n` ran.
+- Recommended next action: merge `004`, then `005`, then verify the published installer from a clean Debian/Ubuntu machine without `python3-venv` installed to confirm the guided failure and the retry.
+
 ## 2026-09-02 — User-friendly Workspace bootstrap
 
 - Branch: `004-user-friendly-bootstrap`
