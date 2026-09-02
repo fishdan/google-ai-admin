@@ -1,6 +1,6 @@
-# FishDev Session Startup Guide
+# Google AI Admin Session Startup Guide
 
-This document defines the standard AI-assisted development workflow for this repository. It must be executed at the beginning of every session.
+This document defines the standard AI-assisted development workflow for this repository. It must be executed at the beginning of every session. This repository is a Google Workspace assistant framework: a user asks an AI to perform approved Workspace work, and the AI uses the repository's tools with explicit local Google authorization.
 
 ---
 
@@ -14,6 +14,8 @@ This document defines the standard AI-assisted development workflow for this rep
 6. Security-conscious development
 7. Human-controlled scope management
 8. Token Optimized Component Architecture (TOCA) compliance
+9. Google Workspace purpose: prioritize useful, permission-aware Workspace workflows; generic FishDev improvements belong elsewhere unless they directly enable this purpose.
+10. Least privilege and user control: default to read-only scopes and require explicit confirmation before actions that change Workspace, account, billing, browser, or credential state.
 
 ---
 
@@ -42,6 +44,8 @@ At the start of every session, you must complete the following steps before begi
 8. Verify constitution availability (read and honor `.specify/memory/constitution.md`).
 9. Review active specifications (e.g., `spec.md`, `plan.md`, `tasks.md`).
 10. Recommend next work.
+
+For user-facing setup work, also treat `README.md`, `install.sh`, and `google_workspace_admin.py check-setup` as the canonical onboarding path. Never request that a user paste OAuth client JSON, tokens, callback URLs, authorization codes, cookies, or passwords into an AI conversation.
 
 MONTHLY SECURITY AUDIT
 
