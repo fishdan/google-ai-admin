@@ -7,8 +7,11 @@ import argparse
 import importlib.metadata
 import json
 import os
+import platform
 import re
+import shlex
 import socket
+import webbrowser
 import stat
 import sys
 from pathlib import Path
@@ -16,6 +19,11 @@ from pathlib import Path
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
+
+try:  # WSGITimeoutError subclasses AttributeError and is not in every release.
+    from google_auth_oauthlib.flow import WSGITimeoutError
+except ImportError:  # pragma: no cover - depends on installed version
+    WSGITimeoutError = AttributeError
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
@@ -38,6 +46,17 @@ COMMAND_SCOPES = {
     "inspect-gmail-routing": [GMAIL_SETTINGS_SCOPE],
 }
 SCOPES = sorted({scope for scopes in COMMAND_SCOPES.values() for scope in scopes})
+
+DEFAULT_OAUTH_TIMEOUT_SECONDS = 900
+WINDOWS_BROWSERS = (
+    "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe",
+    "/mnt/c/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+    "/mnt/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
+    "/mnt/c/Program Files/Microsoft/Edge/Application/msedge.exe",
+)
+# A private window avoids launching whichever profile the browser used last,
+# and forces an explicit account choice for the organization being authorized.
+PRIVATE_WINDOW_FLAGS = {"chrome.exe": "--incognito", "msedge.exe": "--inprivate"}
 
 DEPENDENCIES = {
     "google-api-python-client": "googleapiclient",
@@ -224,6 +243,62 @@ def check_setup(
     return 0
 
 
+def oauth_timeout_seconds(environ=None) -> int:
+    """Return the callback wait in seconds, overridable for slow sign-ins."""
+    raw = (environ if environ is not None else os.environ).get("GOOGLE_OAUTH_TIMEOUT")
+    if raw is None or raw == "":
+        return DEFAULT_OAUTH_TIMEOUT_SECONDS
+    try:
+        seconds = int(raw)
+    except ValueError:
+        raise ValueError(
+            f"GOOGLE_OAUTH_TIMEOUT must be a whole number of seconds, got {raw!r}."
+        ) from None
+    if seconds <= 0:
+        raise ValueError("GOOGLE_OAUTH_TIMEOUT must be greater than zero.")
+    return seconds
+
+
+def _is_wsl(release: str | None = None) -> bool:
+    return "microsoft" in (release or platform.uname().release).lower()
+
+
+def register_host_browser(environ=None, candidates=WINDOWS_BROWSERS) -> str | None:
+    """Under WSL, open the Windows browser instead of failing through xdg-open.
+
+    A user's own BROWSER setting always wins, and a system without a Windows
+    browser simply falls back to the printed URL.
+    """
+    env = environ if environ is not None else os.environ
+    if env.get("BROWSER") or not _is_wsl():
+        return None
+    for candidate in candidates:
+        if Path(candidate).exists():
+            webbrowser.register(
+                "wsl-host-browser",
+                None,
+                # BackgroundBrowser returns as soon as the browser starts.
+                # GenericBrowser waits for it to exit, which blocks the
+                # callback server for as long as the window stays open.
+                webbrowser.BackgroundBrowser(
+                    [candidate, *browser_arguments(candidate, env), "%s"]
+                ),
+                preferred=True,
+            )
+            return candidate
+    return None
+
+
+def browser_arguments(browser_path: str, environ=None) -> list[str]:
+    """Return extra browser flags, defaulting to a private window."""
+    env = environ if environ is not None else os.environ
+    override = env.get("GOOGLE_OAUTH_BROWSER_ARGS")
+    if override is not None:
+        return shlex.split(override)
+    flag = PRIVATE_WINDOW_FLAGS.get(Path(browser_path).name.lower())
+    return [flag] if flag else []
+
+
 def requested_scopes(required: list[str], granted: set[str]) -> list[str]:
     """Union required scopes with granted ones so consent never drops access."""
     return sorted(set(required) | granted)
@@ -248,14 +323,32 @@ def authorize(required: list[str], profile: str = DEFAULT_PROFILE) -> Credential
                 str(client_secret_path(profile)), requested_scopes(required, granted)
             )
             oauth_host = os.environ.get("GOOGLE_OAUTH_HOST", "localhost")
-            credentials = flow.run_local_server(
-                host=oauth_host,
-                bind_addr=oauth_host,
-                port=0,
-                timeout_seconds=300,
-                device_id=socket.gethostname(),
-                device_name="google-ai-admin-local",
+            timeout = oauth_timeout_seconds()
+            register_host_browser()
+            print(
+                "\nA Google authorization page will open in your browser.\n"
+                "The authorization URL, and the localhost address your browser is\n"
+                "sent back to, both contain credential material. Never paste either\n"
+                "into a chat, email, or ticket. Nothing needs to be copied back here.\n"
+                f"Waiting up to {timeout // 60} minutes for you to finish.\n"
             )
+            try:
+                credentials = flow.run_local_server(
+                    host=oauth_host,
+                    bind_addr=oauth_host,
+                    port=0,
+                    timeout_seconds=timeout,
+                    device_id=socket.gethostname(),
+                    device_name="google-ai-admin-local",
+                )
+            except WSGITimeoutError as error:
+                raise RuntimeError(
+                    "Authorization timed out before it finished. If your browser is "
+                    "showing a localhost address, it contains a single-use "
+                    "authorization code: close the tab and do not share it. "
+                    "Run the same command again to start a fresh sign-in, or set "
+                    "GOOGLE_OAUTH_TIMEOUT to allow more time."
+                ) from error
         token_file.write_text(credentials.to_json(), encoding="utf-8")
         token_file.chmod(0o600)
     return credentials

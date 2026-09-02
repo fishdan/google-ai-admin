@@ -223,5 +223,87 @@ class ScopeSelectionTests(unittest.TestCase):
         )
 
 
+class OAuthFlowTests(unittest.TestCase):
+    def test_default_timeout_is_longer_than_five_minutes(self):
+        self.assertGreater(admin.oauth_timeout_seconds({}), 300)
+
+    def test_timeout_is_overridable(self):
+        self.assertEqual(
+            admin.oauth_timeout_seconds({"GOOGLE_OAUTH_TIMEOUT": "1200"}), 1200
+        )
+
+    def test_blank_timeout_falls_back_to_the_default(self):
+        self.assertEqual(
+            admin.oauth_timeout_seconds({"GOOGLE_OAUTH_TIMEOUT": ""}),
+            admin.DEFAULT_OAUTH_TIMEOUT_SECONDS,
+        )
+
+    def test_invalid_timeout_is_rejected_clearly(self):
+        for value in ("soon", "0", "-30", "5.5"):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    admin.oauth_timeout_seconds({"GOOGLE_OAUTH_TIMEOUT": value})
+
+    def test_wsl_is_detected_from_the_kernel_release(self):
+        self.assertTrue(admin._is_wsl("6.18.33.2-microsoft-standard-WSL2"))
+        self.assertFalse(admin._is_wsl("6.8.0-generic"))
+
+    def test_explicit_browser_setting_wins(self):
+        chosen = admin.register_host_browser(
+            {"BROWSER": "firefox"}, candidates=("/nonexistent",)
+        )
+        self.assertIsNone(chosen)
+
+    def test_registered_browser_does_not_block_on_the_browser_process(self):
+        # GenericBrowser calls p.wait(); the callback server would then never
+        # run until the browser window was closed.
+        import webbrowser
+
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = Path(tmp) / "chrome.exe"
+            fake.write_text("")
+            admin.register_host_browser({}, candidates=(str(fake),))
+            registered = webbrowser._browsers["wsl-host-browser"][1]
+        self.assertIsInstance(registered, webbrowser.BackgroundBrowser)
+        self.assertNotIn("%s", [registered.name])
+        self.assertIn("--incognito", registered.args)
+
+    def test_private_window_flag_matches_the_browser(self):
+        self.assertEqual(
+            admin.browser_arguments("/mnt/c/…/chrome.exe", {}), ["--incognito"]
+        )
+        self.assertEqual(
+            admin.browser_arguments("/mnt/c/…/msedge.exe", {}), ["--inprivate"]
+        )
+        self.assertEqual(admin.browser_arguments("/usr/bin/firefox", {}), [])
+
+    def test_browser_arguments_can_be_overridden(self):
+        self.assertEqual(
+            admin.browser_arguments(
+                "/mnt/c/…/chrome.exe",
+                {"GOOGLE_OAUTH_BROWSER_ARGS": '--profile-directory="Profile 2"'},
+            ),
+            ["--profile-directory=Profile 2"],
+        )
+
+    def test_browser_arguments_can_be_disabled(self):
+        self.assertEqual(
+            admin.browser_arguments(
+                "/mnt/c/…/chrome.exe", {"GOOGLE_OAUTH_BROWSER_ARGS": ""}
+            ),
+            [],
+        )
+
+    def test_missing_windows_browser_falls_back_silently(self):
+        self.assertIsNone(
+            admin.register_host_browser({}, candidates=("/nonexistent/chrome.exe",))
+        )
+
+    def test_timeout_error_is_an_attribute_error_subclass(self):
+        # main() catches RuntimeError, so the flow must convert it rather than
+        # let an AttributeError subclass escape as a traceback.
+        self.assertTrue(issubclass(admin.WSGITimeoutError, AttributeError))
+
+
 if __name__ == "__main__":
     unittest.main()
