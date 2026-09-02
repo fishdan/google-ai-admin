@@ -122,6 +122,82 @@ class ProfileTests(unittest.TestCase):
         self.assertEqual([path.name for path in clients], ["client_secret.json"])
 
 
+class ProfileClientTests(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.secrets = Path(self.temp_dir.name) / ".secrets"
+        self.secrets.mkdir(mode=0o700)
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def write_client(self, name):
+        path = self.secrets / name
+        path.write_text(json.dumps({"installed": {
+            "client_id": "redacted-test-id",
+            "client_secret": "redacted-test-secret",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+        }}))
+        path.chmod(0o600)
+        return path
+
+    def test_named_profile_uses_its_own_client(self):
+        self.write_client("client_secret-tenantb.json")
+        resolved = admin.client_secret_path("tenantb", self.secrets)
+        self.assertEqual(resolved.name, "client_secret-tenantb.json")
+
+    def test_missing_profile_client_names_the_expected_path(self):
+        with self.assertRaises(FileNotFoundError) as caught:
+            admin.client_secret_path("tenantb", self.secrets)
+        self.assertIn("client_secret-tenantb.json", str(caught.exception))
+
+    def test_profile_client_is_not_counted_as_a_default_client(self):
+        default = self.write_client("client_secret_876740.apps.googleusercontent.com.json")
+        self.write_client("client_secret-tenantb.json")
+        self.assertEqual(admin.client_secret_path(secrets_dir=self.secrets), default)
+
+    def test_two_default_clients_are_still_ambiguous(self):
+        self.write_client("client_secret_one.json")
+        self.write_client("client_secret_two.json")
+        with self.assertRaises(RuntimeError):
+            admin.client_secret_path(secrets_dir=self.secrets)
+
+    def test_unsafe_profile_name_is_rejected_before_building_a_path(self):
+        with self.assertRaises(ValueError):
+            admin.client_secret_path("../escape", self.secrets)
+
+    def test_readiness_validates_the_profile_client_and_token(self):
+        self.write_client("client_secret-tenantb.json")
+        token = self.secrets / "token-tenantb.json"
+        token.write_text(json.dumps({"scopes": [admin.USER_SCOPE]}))
+        token.chmod(0o600)
+        lines = []
+        status = admin.check_setup(
+            self.secrets, token, lines.append, profile="tenantb"
+        )
+        output = "\n".join(lines)
+        self.assertEqual(status, 0)
+        self.assertIn("profile: tenantb", output)
+        self.assertIn("Desktop OAuth client: present and private", output)
+        self.assertIn("list-users: ready", output)
+        # The client filename can embed the client ID, so it is never printed.
+        self.assertNotIn("client_secret-tenantb.json", output)
+
+    def test_readiness_reports_a_missing_profile_client(self):
+        token = self.secrets / "token-tenantb.json"
+        token.write_text(json.dumps({"scopes": [admin.USER_SCOPE]}))
+        token.chmod(0o600)
+        lines = []
+        status = admin.check_setup(
+            self.secrets, token, lines.append, profile="tenantb"
+        )
+        output = "\n".join(lines)
+        self.assertNotEqual(status, 0)
+        self.assertIn("client_secret-tenantb.json", output)
+        self.assertNotIn("redacted-test-secret", output)
+
+
 class ScopeSelectionTests(unittest.TestCase):
     def test_each_command_declares_only_the_scopes_it_uses(self):
         self.assertEqual(admin.COMMAND_SCOPES["list-users"], [admin.USER_SCOPE])
