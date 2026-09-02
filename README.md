@@ -91,7 +91,7 @@ mv ~/Downloads/client_secret_*.json .secrets/client_secret.json
 chmod 600 .secrets/client_secret.json
 ```
 
-The CLI accepts one OAuth client JSON file with any filename, but it must be the only non-token `.json` file in `.secrets`.
+The CLI accepts one OAuth client JSON file with any filename, but it must be the only non-token, non-profile `.json` file in `.secrets`. Files named `client_secret-<profile>.json` belong to a named profile and are ignored by the default profile — see [Adding a second Workspace organization](#adding-a-second-workspace-organization).
 
 ## 4. Enable the required APIs
 
@@ -238,6 +238,12 @@ This confirms the configuration, but only an actual test message confirms end-to
 - The supported Desktop OAuth callback is a loopback `localhost` URL. Do not replace it with an arbitrary private network IP; Google may reject that request as invalid.
 - If the browser and CLI run in different environments (for example, a Windows browser and a remote Linux/WSL shell), run the command from the same local environment that owns the repository, or use a local terminal/browser arrangement where the printed `localhost:<PORT>` callback can reach the running CLI.
 - If a previous attempt timed out, rerun the command to generate a fresh authorization URL.
+- **Never send an authorization URL or a `localhost` callback address to anyone**, including an AI assistant. If your browser is left showing `http://localhost:<port>/?...&code=...`, that is a single-use authorization code: close the tab and rerun the command. Nothing ever needs to be copied out of the browser.
+- Authorization waits 15 minutes by default. Set `GOOGLE_OAUTH_TIMEOUT` (in seconds) to change it: `GOOGLE_OAUTH_TIMEOUT=1800 .venv/bin/python google_workspace_admin.py list-users`.
+- Under WSL the CLI opens your Windows browser automatically. If you see a list of `xdg-open: ... not found` errors, no Windows browser was found at the usual paths; set `BROWSER` to one, or copy the printed URL into a browser yourself.
+- If you copy the authorization URL by hand and Google reports `Error 400: invalid_scope`, the copy was truncated at a terminal line wrap. The scopes are fine — copy the entire URL, or let the CLI open the browser for you.
+- If a command that used to work starts reporting `More than one OAuth client JSON is in .secrets`, a new client file was added under Google's download name. Rename it to `client_secret-<profile>.json` for the profile it belongs to.
+- Credential files copied from a Windows filesystem often arrive world-readable. Run `chmod 600` on them; the readiness check will tell you which file is affected.
 - If authorization stops working roughly every seven days, the OAuth client is **External** and still in **Testing**. Refresh tokens for restricted scopes expire on that schedule; see [Why the audience choice matters](#why-the-audience-choice-matters).
 - If a command reports a missing scope, just run that command. It requests the scope it needs and keeps the permissions the token already holds; there is no need to delete the token first.
 - If `check-setup` reports that authorization is not complete on an install that was working, confirm the `--profile` value. Each profile has its own token, and omitting `--profile` uses the default one.
@@ -272,6 +278,16 @@ bash -n install.sh
 ```
 
 The test suite uses fixture directories and never contacts Google or reads real credentials.
+
+### Environment variables
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `GOOGLE_AI_ADMIN_DIR` | Fresh-install location used by `install.sh` | `~/.google-ai-admin` |
+| `GOOGLE_AI_ADMIN_REPO_URL` | Repository the installer clones | this project on GitHub |
+| `GOOGLE_OAUTH_TIMEOUT` | Seconds to wait for browser authorization | `900` |
+| `GOOGLE_OAUTH_HOST` | Host for the local OAuth callback | `localhost` |
+| `BROWSER` | Browser used to open the authorization URL | Windows browser under WSL, otherwise the system default |
 
 ## Chrome DevTools MCP
 
