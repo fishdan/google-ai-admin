@@ -1,5 +1,14 @@
 # Handoff
 
+## 2026-09-02 — User-friendly Workspace bootstrap
+
+- Branch: `004-user-friendly-bootstrap`
+- Current task: review the one-command installer and readiness-gate implementation.
+- Files modified: `install.sh`, `google_workspace_admin.py`, `README.md`, `.secrets/README.md`, `start.ai`, `.specify/memory/constitution.md`, `tests/test_setup.py`, `specs/004-user-friendly-bootstrap/`, `.config/ai/progress.ai`.
+- Tests executed: `python3 -m unittest discover -s tests -v` (4 passed), `bash -n install.sh`, Python compilation, CLI help, and local readiness check (ready).
+- Known issue: the installer assumes the GitHub repository URL `https://github.com/fishdan/google-ai-admin.git`; verify that URL and merge the branch before publishing the raw `main` installer command.
+- Recommended next action: review and merge this branch, then test `curl -fsSL https://raw.githubusercontent.com/fishdan/google-ai-admin/main/install.sh | bash` from a clean machine.
+
 ## 2026-09-01 — Gmail routing inspection
 
 - Branch: `main`

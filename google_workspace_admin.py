@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import argparse
+import importlib.metadata
 import json
 import os
 import socket
+import stat
 import sys
 from pathlib import Path
 
@@ -25,6 +27,10 @@ SCOPES = [
     "https://www.googleapis.com/auth/admin.directory.group.readonly",
     "https://www.googleapis.com/auth/gmail.settings.basic",
 ]
+DEPENDENCIES = {
+    "google-api-python-client": "googleapiclient",
+    "google-auth-oauthlib": "google_auth_oauthlib",
+}
 
 
 def client_secret_path() -> Path:
@@ -44,6 +50,93 @@ def client_secret_path() -> Path:
             "keep only the intended Desktop client file."
         )
     return candidates[0]
+
+
+def _private_file(path: Path) -> bool:
+    """Return whether a file has no group or other permissions."""
+    return not (stat.S_IMODE(path.stat().st_mode) & 0o077)
+
+
+def _setup_error(errors: list[str], message: str) -> None:
+    errors.append(f"✗ {message}")
+
+
+def check_setup(
+    secrets_dir: Path = SECRETS_DIR,
+    token_path: Path = TOKEN_PATH,
+    output=print,
+) -> int:
+    """Check local prerequisites without authorizing or contacting Google."""
+    errors: list[str] = []
+    output("Google AI Admin readiness check")
+    output("(This check never prints credential contents or contacts Google.)")
+
+    for distribution, module in DEPENDENCIES.items():
+        try:
+            importlib.metadata.version(distribution)
+            __import__(module)
+            output(f"✓ Python dependency: {distribution}")
+        except (importlib.metadata.PackageNotFoundError, ImportError):
+            _setup_error(errors, f"Python dependency missing: {distribution}")
+
+    if not secrets_dir.is_dir():
+        _setup_error(errors, "Private secrets folder is missing: .secrets")
+        output("\nNext steps:")
+        output("  Create .secrets and place one downloaded Desktop OAuth client JSON inside it.")
+        return 2
+    if stat.S_IMODE(secrets_dir.stat().st_mode) & 0o077:
+        _setup_error(errors, ".secrets is accessible to group/other users; run: chmod 700 .secrets")
+    else:
+        output("✓ Private secrets folder: .secrets")
+
+    client_files = sorted(
+        path for path in secrets_dir.glob("*.json") if path.name != token_path.name
+    )
+    if len(client_files) == 0:
+        _setup_error(errors, "Desktop OAuth client JSON is missing from .secrets")
+    elif len(client_files) > 1:
+        _setup_error(errors, "More than one OAuth client JSON is in .secrets; keep only the intended one")
+    else:
+        client_path = client_files[0]
+        try:
+            client = json.loads(client_path.read_text(encoding="utf-8"))
+            installed = client.get("installed")
+            required_keys = {"client_id", "client_secret", "auth_uri", "token_uri"}
+            if not isinstance(installed, dict) or not required_keys.issubset(installed):
+                _setup_error(errors, "OAuth client JSON is not a valid downloaded Desktop client file")
+            elif not _private_file(client_path):
+                _setup_error(errors, f"OAuth client file is not private; run: chmod 600 {client_path}")
+            else:
+                output("✓ Desktop OAuth client: present and private")
+        except (OSError, json.JSONDecodeError):
+            _setup_error(errors, "OAuth client JSON cannot be read as a valid file")
+
+    if not token_path.is_file():
+        _setup_error(errors, "Google authorization is not complete; run a Workspace command to sign in")
+    else:
+        try:
+            token = json.loads(token_path.read_text(encoding="utf-8"))
+            granted = set(token.get("scopes", []))
+            missing = [scope for scope in SCOPES if scope not in granted]
+            if missing:
+                _setup_error(errors, "Google authorization is missing required scopes; delete .secrets/token.json and sign in again")
+                for scope in missing:
+                    output(f"  missing scope: {scope}")
+            elif not _private_file(token_path):
+                _setup_error(errors, f"Authorization token is not private; run: chmod 600 {token_path}")
+            else:
+                output("✓ Google authorization: all required scopes are present and private")
+        except (OSError, json.JSONDecodeError, AttributeError):
+            _setup_error(errors, "Authorization token is not a valid generated OAuth token")
+
+    if errors:
+        output("\nNot ready yet:")
+        for error in errors:
+            output(error)
+        output("\nRun the setup instructions in README.md, then run this check again.")
+        return 2
+    output("\nReady: local tools and Google authorization are configured.")
+    return 0
 
 
 def authorize() -> Credentials:
@@ -134,7 +227,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "command",
-        choices=("list-users", "list-groups", "inspect-gmail-routing"),
+        choices=("check-setup", "list-users", "list-groups", "inspect-gmail-routing"),
         help="Read-only Workspace operation",
     )
     return parser.parse_args()
@@ -142,6 +235,8 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    if args.command == "check-setup":
+        return check_setup()
     try:
         credentials = authorize()
         service = build("admin", "directory_v1", credentials=credentials)

@@ -1,12 +1,14 @@
-# FishDev Default Constitution
+# Google AI Admin Constitution
 
 Version: 1.0
 
-This constitution defines the engineering principles governing all repositories set up with the FishDev CLI tool.
+This constitution defines the engineering principles governing this repository: a framework in which a user asks an AI assistant to perform approved work in Google Workspace, using local tools and explicit Google permissions.
 
 This constitution is authoritative once adopted by a repository.
 
 All humans and AI assistants working within the repository must follow these principles.
+
+This repository's scope is specifically AI-assisted Google Workspace work. Generic FishDev improvements belong in the FishDev repository unless a specification here demonstrates that they directly enable this purpose.
 
 ---
 
@@ -299,6 +301,8 @@ Repositories should:
 * Follow least-privilege principles
 
 Secrets must never be committed to source control.
+
+Google authorization MUST use least privilege. Read-only scopes are the default. Credentials, OAuth tokens, authorization codes, callback URLs, cookies, and passwords MUST remain local and MUST never be pasted into an AI conversation. Any action that changes Workspace, account, billing, browser, or credential state requires explicit human confirmation.
 
 Security audits should be performed regularly and recorded in project history.
 

@@ -1,6 +1,6 @@
 # Google AI Admin
 
-Command-line tools for helping a Google Workspace administrator inspect and manage a Workspace using Google's APIs.
+Google AI Admin is a framework for asking an AI assistant to do approved work in your Google Workspace. It gives the assistant local, explicit Google tools and permissions, while keeping credentials on your computer and using the narrowest scopes needed by each workflow.
 
 This repository currently provides read-only tools for:
 
@@ -8,7 +8,26 @@ This repository currently provides read-only tools for:
 - Listing Workspace groups
 - Inspecting Gmail filters and forwarding addresses
 
-The setup below is intentionally generic. Replace values such as `<ADMIN_EMAIL>` and `<PROJECT_ID>` with your own information. Never commit credentials or paste them into an AI chat.
+The first milestone is read-only Workspace inspection. Changes to Workspace data require a separate workflow and confirmation. Never commit credentials or paste them into an AI chat.
+
+## Quick start
+
+On macOS, Linux, WSL, or another Unix-like terminal with Git and Python 3.10+, run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/fishdan/google-ai-admin/main/install.sh | bash
+```
+
+The installer creates an isolated environment, installs the tools, and runs a readiness check. It does not create Google permissions or upload credentials. If you already cloned this repository, run the same command from its root and setup will use that checkout. The default fresh-install location is `~/.google-ai-admin`.
+
+After the Google Cloud steps below, verify setup with:
+
+```bash
+cd ~/.google-ai-admin   # or your existing checkout
+.venv/bin/python google_workspace_admin.py check-setup
+```
+
+When the check says `Ready`, your AI assistant can use the documented Workspace commands.
 
 ## Prerequisites
 
@@ -72,6 +91,8 @@ python3 -m venv .venv
 ```
 
 The virtual environment and all secret files are excluded from Git.
+
+The readiness gate checks that `.secrets` is private, exactly one valid Desktop OAuth client is present, the generated token exists, and the token contains every scope used by the current tools. It does not print credential values or contact Google.
 
 ## 6. Authorize the administrator account
 

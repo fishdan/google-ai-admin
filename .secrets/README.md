@@ -14,15 +14,6 @@ This directory is for local credential files only. Do not paste secret values in
 
 The tool will use this to obtain user-authorized access. The first sign-in will open a browser, and the resulting token should also remain local in this directory.
 
-## Information needed from you
-
-Please provide these non-secret settings in your next message:
-
-- The Google Workspace administrator email address to authorize.
-- The Workspace customer ID, if you know it (often starts with `C`).
-- Whether access should be limited to a test/sandbox account or your production Workspace.
-- Which initial admin task to support first (for example: list users, inspect groups, or audit Drive sharing).
-
 ## Alternative: service account
 
 If this will run unattended or across many administrator accounts, we can instead use a service-account JSON key with domain-wide delegation. Do not create or add that key until we explicitly choose this model; service-account keys are high-risk credentials.

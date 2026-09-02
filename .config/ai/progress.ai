@@ -1,5 +1,20 @@
 # Progress Log
 
+## 2026-09-02 — User-friendly Workspace bootstrap
+
+- Created branch `004-user-friendly-bootstrap` and specification for a one-command installer and local Google readiness gate.
+- Added `install.sh` for existing-checkout or fresh `~/.google-ai-admin` setup, isolated Python dependencies, and safe post-install diagnostics.
+- Added `check-setup` to validate dependencies, private `.secrets` permissions, Desktop OAuth client structure, token privacy, and every required OAuth scope without contacting Google or printing secret values.
+- Reframed README, startup guidance, constitution, and secrets guidance around AI-assisted Google Workspace work, least privilege, and human confirmation for mutations.
+- Added fixture-based setup tests and shell validation.
+- Validation: `python3 -m unittest discover -s tests -v` (4 passed), `bash -n install.sh`, Python compilation, CLI help, and live local `check-setup` (ready).
+
+## 2026-09-02 — Monthly dependency audit
+
+- Audited the Python dependency set with `./.venv/bin/pip-audit -r requirements.txt`.
+- Result: no known vulnerabilities found.
+- No dependency changes were required.
+
 ## 2026-09-01 — Local credential scaffold
 
 - Added a local-only `.secrets` directory for Google Workspace authentication material.
